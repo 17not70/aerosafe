@@ -41,6 +41,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import React from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useToast } from '@/hooks/use-toast';
 
 const reportSchema = z.object({
   title: z.string().min(10, 'Title must be at least 10 characters.'),
@@ -58,6 +59,7 @@ export default function NewReportPage() {
   const firestore = useFirestore();
   const auth = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
   const searchParams = useSearchParams();
   const isAnonymousSubmission = searchParams.get('anonymous') === 'true';
 
@@ -74,7 +76,7 @@ export default function NewReportPage() {
     },
   });
 
-  const onSubmit = async (values: ReportFormValues) => {
+  const onSubmit = (values: ReportFormValues) => {
     let reporter_id: string;
     let reportType = values.type;
 
@@ -84,7 +86,11 @@ export default function NewReportPage() {
     } else {
         if (!auth.currentUser) {
           console.error("User not logged in for non-anonymous report");
-          // Optionally, redirect to login
+          toast({
+            variant: "destructive",
+            title: "Authentication Error",
+            description: "You must be logged in to submit this type of report.",
+          });
           router.push('/login');
           return;
         }
@@ -105,9 +111,12 @@ export default function NewReportPage() {
     };
     
     const reportsCollection = collection(firestore, 'reports');
-    await addDocumentNonBlocking(reportsCollection, reportData);
+    addDocumentNonBlocking(reportsCollection, reportData);
     
-    // In a real app, you'd show a success toast here
+    toast({
+      title: "Report Submitted",
+      description: "Your safety report has been successfully submitted.",
+    });
     
     if (values.isAnonymous || (auth.currentUser && auth.currentUser.isAnonymous)) {
         router.push('/'); // Go back to home for anonymous users

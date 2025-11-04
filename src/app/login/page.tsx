@@ -13,6 +13,7 @@ import React from "react";
 import { useRouter } from "next/navigation";
 import { doc } from "firebase/firestore";
 import type { User } from "@/lib/types";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 
 export default function LoginPage() {
   const loginImage = PlaceHolderImages.find(
@@ -32,6 +33,34 @@ export default function LoginPage() {
     initiateEmailSignIn(auth, email, password);
   };
   
+  // Dev-only: auto-login logic
+  React.useEffect(() => {
+    if (process.env.NODE_ENV === 'development' && auth && !auth.currentUser) {
+      const email = 'officer@example.com';
+      const password = 'password';
+
+      const devLogin = async () => {
+        try {
+          // Try to sign in first
+          await signInWithEmailAndPassword(auth, email, password);
+        } catch (error: any) {
+          // If user not found, create it
+          if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+            try {
+              await createUserWithEmailAndPassword(auth, email, password);
+            } catch (createError) {
+              console.error("Failed to create dev user:", createError);
+            }
+          } else {
+            console.error("Failed to sign in dev user:", error);
+          }
+        }
+      };
+      devLogin();
+    }
+  }, [auth]);
+
+
   React.useEffect(() => {
     if (auth.currentUser && userProfile) {
         switch (userProfile.role) {

@@ -43,7 +43,16 @@
           "type": "array",
           "description": "References to attachments stored in Cloud Storage.",
           "items": {
-            "type": "string"
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "url": {
+                "type": "string"
+              }
+            },
+            "required": ["name", "url"]
           }
         },
         "reporter_id": {

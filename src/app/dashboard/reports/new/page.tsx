@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -36,9 +37,10 @@ import {
   useFirestore,
 } from '@/firebase';
 import { collection } from 'firebase/firestore';
-import { useRouter } from 'next/navigation';
-import { serverTimestamp } from 'firebase/firestore';
+import { useRouter, useSearchParams } from 'next/navigation';
 import React from 'react';
+import { v4 as uuidv4 } from 'uuid';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const reportSchema = z.object({
   title: z.string().min(10, 'Title must be at least 10 characters.'),
@@ -47,6 +49,7 @@ const reportSchema = z.object({
   severity: z.number().min(1).max(5),
   probability: z.number().min(1).max(5),
   hazardType: z.string().min(1, 'Please select a hazard type.'),
+  isAnonymous: z.boolean().default(false),
 });
 
 type ReportFormValues = z.infer<typeof reportSchema>;
@@ -55,36 +58,62 @@ export default function NewReportPage() {
   const firestore = useFirestore();
   const auth = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isAnonymousSubmission = searchParams.get('anonymous') === 'true';
 
   const form = useForm<ReportFormValues>({
     resolver: zodResolver(reportSchema),
     defaultValues: {
       title: '',
       description: '',
-      type: 'VSR',
+      type: isAnonymousSubmission ? 'VSR' : 'MOR',
       severity: 3,
       probability: 3,
       hazardType: '',
+      isAnonymous: isAnonymousSubmission,
     },
   });
 
   const onSubmit = async (values: ReportFormValues) => {
-    if (!auth.currentUser) {
-      // Handle case where user is not logged in
-      console.error("User not logged in");
-      return;
+    let reporter_id: string;
+    let reportType = values.type;
+
+    if (values.isAnonymous) {
+        reporter_id = `anon_${uuidv4()}`;
+        reportType = 'VSR';
+    } else {
+        if (!auth.currentUser) {
+          console.error("User not logged in for non-anonymous report");
+          // Optionally, redirect to login
+          router.push('/login');
+          return;
+        }
+        reporter_id = auth.currentUser.uid;
     }
+
     const reportData = {
-      ...values,
+      title: values.title,
+      description: values.description,
+      type: reportType,
+      severity: values.severity,
+      probability: values.probability,
+      hazardType: values.hazardType,
       risk_index: values.severity * values.probability,
-      reporter_id: auth.currentUser.uid,
+      reporter_id: reporter_id,
       created_at: new Date().toISOString(),
       action_status: 'Open',
     };
     
     const reportsCollection = collection(firestore, 'reports');
     await addDocumentNonBlocking(reportsCollection, reportData);
-    router.push('/dashboard/reports');
+    
+    // In a real app, you'd show a success toast here
+    
+    if (values.isAnonymous || (auth.currentUser && auth.currentUser.isAnonymous)) {
+        router.push('/'); // Go back to home for anonymous users
+    } else {
+        router.push('/dashboard/reports');
+    }
   };
 
   return (
@@ -93,7 +122,10 @@ export default function NewReportPage() {
         <CardHeader>
           <CardTitle>New Safety Report</CardTitle>
           <CardDescription>
-            Submit a new Voluntary (VSR) or Mandatory (MOR) Safety Report.
+            {isAnonymousSubmission 
+              ? "Submit a new Voluntary Safety Report (VSR). Your submission is anonymous."
+              : "Submit a new Mandatory Occurrence Report (MOR) or a voluntary report as a logged-in user."
+            }
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -145,6 +177,7 @@ export default function NewReportPage() {
                       <Select
                         onValueChange={field.onChange}
                         defaultValue={field.value}
+                        disabled={isAnonymousSubmission}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -227,6 +260,31 @@ export default function NewReportPage() {
                 )}
               />
               </div>
+              
+              {!isAnonymousSubmission && auth.currentUser && (
+                <FormField
+                  control={form.control}
+                  name="isAnonymous"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>
+                          Submit this report anonymously
+                        </FormLabel>
+                        <FormDescription>
+                          If checked, this will be submitted as a VSR and your user information will not be attached.
+                        </FormDescription>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              )}
               
               <Button type="submit">Submit Report</Button>
             </form>

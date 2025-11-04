@@ -1,29 +1,22 @@
+
 'use client';
 import Image from "next/image";
 import Link from "next/link";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Icons } from "@/components/icons";
 import { useAuth } from "@/firebase";
-import { initiateEmailSignIn } from "@/firebase/non-blocking-login";
 import React from "react";
 import { useRouter } from "next/navigation";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ArrowRight, FilePen } from "lucide-react";
 
-export default function LoginPage() {
+export default function HomePage() {
   const loginImage = PlaceHolderImages.find(
     (image) => image.id === "login-background"
   );
   const auth = useAuth();
   const router = useRouter();
-
-  const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const email = e.currentTarget.email.value;
-    const password = e.currentTarget.password.value;
-    initiateEmailSignIn(auth, email, password);
-  };
   
   React.useEffect(() => {
     if (auth.currentUser) {
@@ -32,58 +25,8 @@ export default function LoginPage() {
   }, [auth.currentUser, router]);
 
   return (
-    <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen">
-      <div className="flex items-center justify-center py-12">
-        <div className="mx-auto grid w-[350px] gap-6">
-          <div className="grid gap-2 text-center">
-            <Icons.logo className="w-16 h-16 mx-auto" />
-            <h1 className="text-3xl font-bold font-headline">AeroSafe Insights</h1>
-            <p className="text-balance text-muted-foreground">
-              Enter your credentials to access your dashboard
-            </p>
-          </div>
-          <form onSubmit={handleLogin} className="grid gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="officer@example.com"
-                required
-                defaultValue="officer@example.com"
-              />
-            </div>
-            <div className="grid gap-2">
-              <div className="flex items-center">
-                <Label htmlFor="password">Password</Label>
-                <Link
-                  href="#"
-                  className="ml-auto inline-block text-sm underline"
-                >
-                  Forgot your password?
-                </Link>
-              </div>
-              <Input id="password" name="password" type="password" required defaultValue="password" />
-            </div>
-            <Button type="submit" className="w-full">
-              Login
-            </Button>
-            <Button variant="outline" className="w-full">
-              <Icons.google className="mr-2 h-4 w-4" />
-              Login with Google
-            </Button>
-          </form>
-          <div className="mt-4 text-center text-sm">
-            Don&apos;t have an account?{" "}
-            <Link href="#" className="underline">
-              Contact Admin
-            </Link>
-          </div>
-        </div>
-      </div>
-      <div className="hidden bg-muted lg:block relative">
-        {loginImage && (
+    <div className="relative min-h-screen w-full">
+       {loginImage && (
           <Image
             src={loginImage.imageUrl}
             alt={loginImage.description}
@@ -92,11 +35,57 @@ export default function LoginPage() {
             className="object-cover"
           />
         )}
-         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-         <div className="absolute bottom-0 left-0 p-8">
-            <h2 className="text-3xl font-bold text-white font-headline">Proactive Safety Management, Simplified.</h2>
-            <p className="text-white/80 mt-2">Record, classify, and analyze aviation safety reports with ease.</p>
-         </div>
+      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" />
+      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center p-4">
+        <div className="text-center mb-12">
+            <Icons.logo className="w-24 h-24 mx-auto text-primary" />
+            <h1 className="text-4xl font-bold font-headline mt-4">AeroSafe Insights</h1>
+            <p className="text-lg text-muted-foreground mt-2">Safety Reporting Gateway</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl w-full">
+            <Card className="bg-card/80">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 font-headline">
+                        <FilePen className="w-6 h-6 text-primary" />
+                        Anonymous Report (VSR)
+                    </CardTitle>
+                    <CardDescription>
+                        No login required. Your identity will not be recorded.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-sm text-muted-foreground mb-4">
+                        Submit a Voluntary Safety Report (VSR) to confidentially share safety concerns or observations. Your anonymity is protected.
+                    </p>
+                    <Button asChild className="w-full">
+                        <Link href="/dashboard/reports/new?anonymous=true">
+                            Submit Voluntary Safety Report <ArrowRight className="ml-2" />
+                        </Link>
+                    </Button>
+                </CardContent>
+            </Card>
+            <Card className="bg-card/80">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 font-headline">
+                        <ArrowRight className="w-6 h-6 text-primary" />
+                        Staff Access
+                    </CardTitle>
+                    <CardDescription>
+                        Requires staff login. Used for regulatory occurrence reporting and management.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-sm text-muted-foreground mb-4">
+                        Log in to submit Mandatory Occurrence Reports (MOR), manage cases, and view safety analytics dashboards.
+                    </p>
+                    <Button asChild className="w-full">
+                        <Link href="/login">
+                            Log In / Continue as Staff <ArrowRight className="ml-2" />
+                        </Link>
+                    </Button>
+                </CardContent>
+            </Card>
+        </div>
       </div>
     </div>
   );

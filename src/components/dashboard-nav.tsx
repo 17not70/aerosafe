@@ -62,25 +62,31 @@ export function DashboardNav({ userRole }: DashboardNavProps) {
     <SidebarMenu>
       {accessibleNavItems.map((item) => (
         <SidebarMenuItem key={item.href}>
-          <Link href={item.href} legacyBehavior passHref>
+          <Link href={item.href} passHref>
             <SidebarMenuButton
+              asChild
               isActive={pathname === item.href}
               tooltip={item.title}
             >
-              <item.icon />
-              <span>{item.title}</span>
+              <div>
+                <item.icon />
+                <span>{item.title}</span>
+              </div>
             </SidebarMenuButton>
           </Link>
         </SidebarMenuItem>
       ))}
       <SidebarMenuItem className="mt-4">
-          <Link href="/dashboard/reports/new" legacyBehavior passHref>
+          <Link href="/dashboard/reports/new" passHref>
             <SidebarMenuButton
+                asChild
                 variant="outline"
                 className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 hover:text-primary"
                 >
-                <FilePlus />
-                <span>New Report</span>
+                <div>
+                  <FilePlus />
+                  <span>New Report</span>
+                </div>
             </SidebarMenuButton>
           </Link>
       </SidebarMenuItem>

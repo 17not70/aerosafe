@@ -44,7 +44,7 @@ export default function LoginPage() {
           // Try to sign in first
           await signInWithEmailAndPassword(auth, email, password);
         } catch (error: any) {
-          // If user not found, create it
+          // If user not found or credential is wrong (could be first time), create it
           if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
             try {
               const userCredential = await createUserWithEmailAndPassword(auth, email, password);

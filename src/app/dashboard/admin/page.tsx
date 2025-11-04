@@ -1,3 +1,4 @@
+'use client'
 import {
   Card,
   CardContent,
@@ -16,7 +17,6 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { users } from "@/lib/data"
 import { MoreHorizontal, UserPlus } from "lucide-react"
 import {
     DropdownMenu,
@@ -25,6 +25,9 @@ import {
     DropdownMenuLabel,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { useCollection, useFirestore, useMemoFirebase } from "@/firebase"
+import { collection, query } from "firebase/firestore"
+import type { User } from "@/lib/types"
 
 const getRoleBadgeVariant = (role: string) => {
     switch(role) {
@@ -36,6 +39,10 @@ const getRoleBadgeVariant = (role: string) => {
 }
 
 export default function AdminPage() {
+  const firestore = useFirestore();
+  const usersQuery = useMemoFirebase(() => query(collection(firestore, "users")), [firestore]);
+  const { data: users, isLoading } = useCollection<User>(usersQuery);
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
@@ -59,7 +66,8 @@ export default function AdminPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users.map((user) => (
+              {isLoading && <TableRow><TableCell colSpan={3} className="text-center">Loading...</TableCell></TableRow>}
+              {!isLoading && users && users.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">

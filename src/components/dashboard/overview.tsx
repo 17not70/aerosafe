@@ -1,25 +1,29 @@
-"use client"
-
+'use client'
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts"
-import { reports } from "@/lib/data"
+import { useCollection, useFirestore, useMemoFirebase } from "@/firebase"
 import {
   ChartTooltip,
   ChartTooltipContent,
   ChartContainer,
 } from "@/components/ui/chart"
 import { subMonths, format } from "date-fns"
-
-// Generate data for the last 6 months
-const data = Array.from({ length: 6 }).map((_, i) => {
-  const date = subMonths(new Date(), 5 - i)
-  return {
-    name: format(date, "MMM"),
-    total: reports.filter(r => format(new Date(r.created_at), "yyyy-MM") === format(date, "yyyy-MM")).length
-  }
-}).map(month => ({...month, total: month.total || Math.floor(Math.random() * 5) + 1})) // add some random data for demo
+import { collection } from "firebase/firestore"
+import type { Report } from "@/lib/types"
 
 
 export function Overview() {
+  const firestore = useFirestore();
+  const reportsQuery = useMemoFirebase(() => collection(firestore, "reports"), [firestore]);
+  const { data: reports, isLoading } = useCollection<Report>(reportsQuery);
+
+  const data = Array.from({ length: 6 }).map((_, i) => {
+    const date = subMonths(new Date(), 5 - i)
+    return {
+      name: format(date, "MMM"),
+      total: reports?.filter(r => format(new Date(r.created_at), "yyyy-MM") === format(date, "yyyy-MM")).length || 0
+    }
+  });
+
   return (
     <ResponsiveContainer width="100%" height={350}>
       <BarChart data={data}>

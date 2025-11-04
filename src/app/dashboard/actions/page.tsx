@@ -1,3 +1,4 @@
+'use client'
 import {
   Card,
   CardContent,
@@ -16,10 +17,12 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { correctiveActions, users, reports } from "@/lib/data"
 import { cn } from "@/lib/utils"
 import { format, parseISO } from "date-fns"
 import Link from "next/link"
+import { useCollection, useFirestore, useMemoFirebase } from "@/firebase"
+import { collection, query } from "firebase/firestore"
+import type { CorrectiveAction, User, Report } from "@/lib/types"
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -37,6 +40,16 @@ const getStatusColor = (status: string) => {
 };
 
 export default function ActionsPage() {
+  const firestore = useFirestore();
+  const actionsQuery = useMemoFirebase(() => query(collection(firestore, "corrective_actions")), [firestore]);
+  const { data: correctiveActions, isLoading: actionsLoading } = useCollection<CorrectiveAction>(actionsQuery);
+
+  const usersQuery = useMemoFirebase(() => query(collection(firestore, "users")), [firestore]);
+  const { data: users, isLoading: usersLoading } = useCollection<User>(usersQuery);
+
+  const reportsQuery = useMemoFirebase(() => query(collection(firestore, "reports")), [firestore]);
+  const { data: reports, isLoading: reportsLoading } = useCollection<Report>(reportsQuery);
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
@@ -60,9 +73,10 @@ export default function ActionsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {correctiveActions.map((action) => {
-                const user = users.find(u => u.id === action.assigned_to_id)
-                const report = reports.find(r => r.id === action.report_id)
+              {(actionsLoading || usersLoading || reportsLoading) && <TableRow><TableCell colSpan={6} className="text-center">Loading...</TableCell></TableRow>}
+              {!actionsLoading && !usersLoading && !reportsLoading && correctiveActions && correctiveActions.map((action) => {
+                const user = users?.find(u => u.id === action.assigned_to_id)
+                const report = reports?.find(r => r.id === action.report_id)
                 const isOverdue = new Date(action.due_date) < new Date() && action.status !== 'Completed' && action.status !== 'Closed';
                 
                 return (

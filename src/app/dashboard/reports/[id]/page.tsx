@@ -1,5 +1,5 @@
+'use client'
 import { notFound } from "next/navigation"
-import { reports, users, correctiveActions } from "@/lib/data"
 import {
   Card,
   CardContent,
@@ -26,6 +26,9 @@ import { format, parseISO } from "date-fns"
 import { cn } from "@/lib/utils"
 import { ReportSummaryAi } from "@/components/dashboard/report-summary-ai"
 import { ReportRecommendationsAi } from "@/components/dashboard/report-recommendations-ai"
+import { useDoc, useCollection, useFirestore, useMemoFirebase } from "@/firebase"
+import { doc, collection, query, where } from "firebase/firestore"
+import type { Report, User, CorrectiveAction } from "@/lib/types"
 
 const getRiskColor = (riskIndex: number, element: 'text' | 'bg' | 'border') => {
     if (riskIndex >= 17) return `text-red-900 bg-red-100 border-red-300`;
@@ -45,14 +48,27 @@ const getStatusColor = (status: string) => {
 };
 
 export default function ReportDetailPage({ params }: { params: { id: string } }) {
-  const report = reports.find((r) => r.id === params.id)
+  const firestore = useFirestore();
+  const reportRef = useMemoFirebase(() => doc(firestore, "reports", params.id), [firestore, params.id]);
+  const { data: report, isLoading: reportLoading } = useDoc<Report>(reportRef);
+
+  const reporterRef = useMemoFirebase(() => report ? doc(firestore, "users", report.reporter_id) : null, [firestore, report]);
+  const { data: reporter, isLoading: reporterLoading } = useDoc<User>(reporterRef);
+
+  const actionsQuery = useMemoFirebase(() => report ? query(collection(firestore, 'corrective_actions'), where('report_id', '==', report.id)) : null, [firestore, report]);
+  const { data: reportActions, isLoading: actionsLoading } = useCollection<CorrectiveAction>(actionsQuery);
+  
+  const usersQuery = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
+  const { data: users } = useCollection<User>(usersQuery);
+
+  if (reportLoading) {
+    return <div>Loading report...</div>
+  }
+
   if (!report) {
     notFound()
   }
-
-  const reporter = users.find((u) => u.id === report.reporter_id)
-  const reportActions = correctiveActions.filter(a => a.report_id === report.id);
-
+  
   return (
     <div className="flex flex-col gap-6">
         <div className="flex items-center gap-4">
@@ -126,8 +142,9 @@ export default function ReportDetailPage({ params }: { params: { id: string } })
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {reportActions.length > 0 ? reportActions.map(action => {
-                            const assignee = users.find(u => u.id === action.assigned_to_id);
+                        {actionsLoading && <TableRow><TableCell colSpan={4} className="text-center">Loading actions...</TableCell></TableRow>}
+                        {!actionsLoading && reportActions && reportActions.length > 0 ? reportActions.map(action => {
+                            const assignee = users?.find(u => u.id === action.assigned_to_id);
                             return (
                                 <TableRow key={action.id}>
                                     <TableCell className="font-medium">{action.description}</TableCell>
@@ -180,11 +197,11 @@ export default function ReportDetailPage({ params }: { params: { id: string } })
                 <div className="flex items-start gap-3">
                     <Avatar className="w-10 h-10 border">
                         <AvatarImage src={reporter?.avatar} />
-                        <AvatarFallback>{reporter?.name.charAt(0)}</AvatarFallback>
+                        <AvatarFallback>{reporterLoading ? '...' : reporter?.name.charAt(0)}</AvatarFallback>
                     </Avatar>
                     <div>
                         <p className="font-semibold">Reported By</p>
-                        <p className="text-muted-foreground">{reporter?.name}</p>
+                        <p className="text-muted-foreground">{reporterLoading ? '...' : reporter?.name}</p>
                     </div>
                 </div>
                 <Separator />

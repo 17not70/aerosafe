@@ -27,6 +27,7 @@ export type Report = {
   attachments?: { name: string; url: string }[];
   reporter_id: string;
   created_at: string; // ISO 8601 format
+  hazardType?: string;
 };
 
 export type CorrectiveAction = {

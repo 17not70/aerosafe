@@ -1,3 +1,4 @@
+'use client'
 import {
   Card,
   CardContent,
@@ -8,15 +9,27 @@ import {
 import { Button } from "@/components/ui/button"
 import { ArrowUpRight, FilePlus } from "lucide-react"
 import Link from "next/link"
-import { reports, correctiveActions } from "@/lib/data"
+import { useCollection, useFirestore, useMemoFirebase } from "@/firebase"
 import { Overview } from "@/components/dashboard/overview"
 import { RecentReports } from "@/components/dashboard/recent-reports"
 import { RiskMatrix } from "@/components/dashboard/risk-matrix"
+import { collection, query, where } from "firebase/firestore"
+import type { Report, CorrectiveAction } from "@/lib/types"
 
 export default function DashboardPage() {
-  const openActions = correctiveActions.filter(a => a.status === 'Open' || a.status === 'In Progress').length
-  const overdueActions = correctiveActions.filter(a => new Date(a.due_date) < new Date() && a.status !== 'Completed' && a.status !== 'Closed').length
+  const firestore = useFirestore();
+  const reportsQuery = useMemoFirebase(() => collection(firestore, "reports"), [firestore]);
+  const { data: reports, isLoading: reportsLoading } = useCollection<Report>(reportsQuery);
 
+  const correctiveActionsQuery = useMemoFirebase(() => collection(firestore, "corrective_actions"), [firestore]);
+  const { data: correctiveActions, isLoading: actionsLoading } = useCollection<CorrectiveAction>(correctiveActionsQuery);
+  
+  const openActions = correctiveActions?.filter(a => a.status === 'Open' || a.status === 'In Progress').length || 0;
+  const overdueActions = correctiveActions?.filter(a => new Date(a.due_date) < new Date() && a.status !== 'Completed' && a.status !== 'Closed').length || 0;
+
+  const totalReports = reports?.length || 0;
+  const avgRiskIndex = totalReports > 0 ? (reports!.reduce((acc, r) => acc + r.risk_index, 0) / totalReports).toFixed(1) : 0;
+  
   return (
     <>
       <div className="flex items-center justify-between space-y-2">
@@ -50,7 +63,7 @@ export default function DashboardPage() {
             </svg>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{reports.length}</div>
+            <div className="text-2xl font-bold">{reportsLoading ? '...' : totalReports}</div>
             <p className="text-xs text-muted-foreground">
               +2 this month
             </p>
@@ -74,9 +87,9 @@ export default function DashboardPage() {
             </svg>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{openActions}</div>
+            <div className="text-2xl font-bold">{actionsLoading ? '...' : openActions}</div>
             <p className="text-xs text-muted-foreground">
-              from {reports.filter(r => r.action_status !== 'Closed').length} reports
+              from {reports?.filter(r => r.action_status !== 'Closed').length} reports
             </p>
           </CardContent>
         </Card>
@@ -97,7 +110,7 @@ export default function DashboardPage() {
             </svg>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{(reports.reduce((acc, r) => acc + r.risk_index, 0) / reports.length).toFixed(1)}</div>
+            <div className="text-2xl font-bold">{reportsLoading ? '...' : avgRiskIndex}</div>
             <p className="text-xs text-muted-foreground">
               Trending downwards
             </p>
@@ -128,7 +141,7 @@ export default function DashboardPage() {
             </svg>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-destructive">{overdueActions}</div>
+            <div className="text-2xl font-bold text-destructive">{actionsLoading ? '...' : overdueActions}</div>
             <p className="text-xs text-muted-foreground">
               Requires immediate attention
             </p>
@@ -148,7 +161,7 @@ export default function DashboardPage() {
           <CardHeader>
             <CardTitle className="font-headline">Recent Reports</CardTitle>
             <CardDescription>
-              You have {reports.length} safety reports in total.
+              You have {reports?.length || 0} safety reports in total.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -161,7 +174,7 @@ export default function DashboardPage() {
                 <CardDescription>5x5 matrix mapping probability vs. severity of all reports.</CardDescription>
             </CardHeader>
             <CardContent>
-                <RiskMatrix reports={reports} />
+                <RiskMatrix reports={reports || []} />
             </CardContent>
         </Card>
       </div>

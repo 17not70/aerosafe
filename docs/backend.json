@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "Report": {
@@ -30,11 +31,11 @@
           "type": "number",
           "description": "Probability of the safety event occurring again (e.g., on a scale of 1-5)."
         },
-        "riskIndex": {
+        "risk_index": {
           "type": "number",
           "description": "Calculated risk index (Severity x Probability)."
         },
-        "actionStatus": {
+        "action_status": {
           "type": "string",
           "description": "Current status of corrective actions (e.g., Open, In Progress, Closed)."
         },
@@ -45,11 +46,11 @@
             "type": "string"
           }
         },
-        "reporterId": {
+        "reporter_id": {
           "type": "string",
           "description": "Reference to User who submitted the report. (Relationship: User 1:N Report)"
         },
-        "createdAt": {
+        "created_at": {
           "type": "string",
           "description": "Timestamp of when the report was created.",
           "format": "date-time"
@@ -66,11 +67,10 @@
         "description",
         "severity",
         "probability",
-        "riskIndex",
-        "actionStatus",
-        "reporterId",
-        "createdAt",
-        "hazardType"
+        "risk_index",
+        "action_status",
+        "reporter_id",
+        "created_at"
       ]
     },
     "User": {
@@ -114,11 +114,11 @@
           "type": "string",
           "description": "Unique identifier for the corrective action."
         },
-        "reportId": {
+        "report_id": {
           "type": "string",
           "description": "Reference to the Report this action is associated with. (Relationship: Report 1:N CorrectiveAction)"
         },
-        "assignedTo": {
+        "assigned_to_id": {
           "type": "string",
           "description": "Reference to User assigned to this action. (Relationship: User 1:N CorrectiveAction)"
         },
@@ -126,7 +126,7 @@
           "type": "string",
           "description": "Description of the corrective action."
         },
-        "dueDate": {
+        "due_date": {
           "type": "string",
           "description": "Date by which the action should be completed.",
           "format": "date-time"
@@ -138,10 +138,10 @@
       },
       "required": [
         "id",
-        "reportId",
-        "assignedTo",
+        "report_id",
+        "assigned_to_id",
         "description",
-        "dueDate",
+        "due_date",
         "status"
       ]
     },
@@ -184,108 +184,43 @@
     ]
   },
   "firestore": {
-    "structure": [
-      {
-        "path": "/users/{userId}",
-        "definition": {
-          "entityName": "User",
-          "schema": {
-            "$ref": "#/backend/entities/User"
-          },
-          "description": "Stores user profiles. 'userId' is the Firebase Auth UID.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The Firebase Auth UID of the user."
-            }
-          ]
-        }
+    "collections": {
+      "users": {
+        "schema": {
+          "$ref": "#/entities/User"
+        },
+        "description": "Stores user profiles. The document ID is the Firebase Auth UID."
       },
-      {
-        "path": "/users/{userId}/reports/{reportId}",
-        "definition": {
-          "entityName": "Report",
-          "schema": {
-            "$ref": "#/backend/entities/Report"
-          },
-          "description": "Stores safety reports submitted by a specific user. 'userId' matches the report's 'reporterId'.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The Firebase Auth UID of the user who submitted the report."
-            },
-            {
-              "name": "reportId",
-              "description": "The unique ID of the report."
-            }
-          ]
-        }
+      "reports": {
+        "schema": {
+          "$ref": "#/entities/Report"
+        },
+        "description": "Stores all safety reports. Security rules will control access based on user role."
       },
-      {
-        "path": "/corrective_actions/{correctiveActionId}",
-        "definition": {
-          "entityName": "CorrectiveAction",
-          "schema": {
-            "$ref": "#/backend/entities/CorrectiveAction"
-          },
-          "description": "Stores corrective actions related to safety reports. Authorization Independence achieved via denormalization.",
-          "params": [
-            {
-              "name": "correctiveActionId",
-              "description": "The unique ID of the corrective action."
-            }
-          ]
-        }
+      "corrective_actions": {
+        "schema": {
+          "$ref": "#/entities/CorrectiveAction"
+        },
+        "description": "Stores all corrective actions."
       },
-      {
-        "path": "/audit_logs/{auditLogId}",
-        "definition": {
-          "entityName": "AuditLog",
-          "schema": {
-            "$ref": "#/backend/entities/AuditLog"
-          },
-          "description": "Stores audit logs of user actions. Only accessible to admins.",
-          "params": [
-            {
-              "name": "auditLogId",
-              "description": "The unique ID of the audit log entry."
-            }
-          ]
-        }
+      "audit_logs": {
+        "schema": {
+          "$ref": "#/entities/AuditLog"
+        },
+        "description": "Stores audit trail information for administrative oversight."
       },
-      {
-        "path": "/roles_admin/{userId}",
-        "definition": {
-          "entityName": "User",
-          "schema": {
-            "$ref": "#/backend/entities/User"
-          },
-          "description": "Collection to store UIDs of admin users. Existence in this collection grants admin privileges.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The Firebase Auth UID of the admin user."
-            }
-          ]
-        }
+      "roles_admin": {
+        "schema": {
+          "$ref": "#/entities/User"
+        },
+        "description": "Collection to store UIDs of admin users. Existence in this collection grants admin privileges."
       },
-      {
-        "path": "/roles_safety_officer/{userId}",
-        "definition": {
-          "entityName": "User",
-          "schema": {
-            "$ref": "#/backend/entities/User"
-          },
-          "description": "Collection to store UIDs of safety officer users. Existence in this collection grants safety officer privileges.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The Firebase Auth UID of the safety officer user."
-            }
-          ]
-        }
+      "roles_safety_officer": {
+        "schema": {
+          "$ref": "#/entities/User"
+        },
+        "description": "Collection to store UIDs of safety officer users. Existence in this collection grants safety officer privileges."
       }
-    ],
-    "reasoning": "The Firestore data structure is designed to support the AeroSafe Insights application, focusing on role-based access control, efficient data retrieval, and scalability. It incorporates denormalization to ensure Authorization Independence, which is critical for security and atomic operations. The structure uses structural segregation to enforce homogeneous security postures within collections.\n\n*   **Users Collection:** Stores user profiles, including roles.  Security rules will ensure only admins can create/modify user roles.\n*   **Reports Collection:** Stores safety reports. Reporters can only read/write their own reports, while Safety Officers and Admins have broader access.\n*   **Corrective Actions Collection:** Stores corrective actions related to reports.  The `reportId` field links actions to reports. Authorization Independence is achieved via denormalization of report access rights to enable atomic operations on corrective actions linked to reports.\n*   **Audit Logs Collection:** Logs user actions for auditing purposes.  Only Admins can read this collection.\n*   **Roles Collections:** Admin and Safety Officer roles are stored in dedicated collections. These collections use Existence over Content for rule definitions to determine global roles. This approach simplifies security rules and enhances maintainability.\n\n**Authorization Independence:**  Corrective Actions and Reports are directly related to their parent objects via IDs.  This removes authorization dependencies in rules and enables atomic creation/updates/deletes.\n\n**QAPs (Rules are not Filters):**\n\n*   The separation of data into collections based on access roles enables efficient and secure list operations.  For example, `/users/{userId}/reports` allows reporters to list only their own reports without requiring filtering in the rules.\n*   The use of existence checks in the `roles_admin` and `roles_safety_officer` collections allows for QAPs, as it avoids reading the user document to check the role, improving performance and security."
+    }
   }
 }

@@ -1,3 +1,4 @@
+'use client'
 import {
   Card,
   CardContent,
@@ -15,11 +16,13 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { reports } from "@/lib/data"
+import { useCollection, useFirestore, useMemoFirebase } from "@/firebase"
 import { cn } from "@/lib/utils"
 import { format, parseISO } from "date-fns"
 import { FilePlus, Download } from "lucide-react"
 import Link from "next/link"
+import { collection, query } from "firebase/firestore"
+import type { Report } from "@/lib/types"
 
 const getRiskColor = (riskIndex: number) => {
   if (riskIndex >= 17) return 'bg-red-200 text-red-900 border-red-300';
@@ -44,6 +47,10 @@ const getStatusColor = (status: string) => {
 };
 
 export default function ReportsPage() {
+  const firestore = useFirestore();
+  const reportsQuery = useMemoFirebase(() => query(collection(firestore, "reports")), [firestore]);
+  const { data: reports, isLoading } = useCollection<Report>(reportsQuery);
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
@@ -79,7 +86,8 @@ export default function ReportsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {reports.map((report) => (
+              {isLoading && <TableRow><TableCell colSpan={7} className="text-center">Loading...</TableCell></TableRow>}
+              {!isLoading && reports && reports.map((report) => (
                 <TableRow key={report.id}>
                   <TableCell className="font-medium">{report.id.toUpperCase()}</TableCell>
                   <TableCell>{report.title}</TableCell>

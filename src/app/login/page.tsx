@@ -11,9 +11,9 @@ import { useAuth, useDoc, useFirestore, useMemoFirebase } from "@/firebase";
 import { initiateEmailSignIn } from "@/firebase/non-blocking-login";
 import React from "react";
 import { useRouter } from "next/navigation";
-import { doc } from "firebase/firestore";
+import { doc, setDoc } from "firebase/firestore";
 import type { User } from "@/lib/types";
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, User as FirebaseUser } from "firebase/auth";
 
 export default function LoginPage() {
   const loginImage = PlaceHolderImages.find(
@@ -35,7 +35,7 @@ export default function LoginPage() {
   
   // Dev-only: auto-login logic
   React.useEffect(() => {
-    if (process.env.NODE_ENV === 'development' && auth && !auth.currentUser) {
+    if (process.env.NODE_ENV === 'development' && auth && firestore && !auth.currentUser) {
       const email = 'officer@example.com';
       const password = 'password';
 
@@ -47,9 +47,21 @@ export default function LoginPage() {
           // If user not found, create it
           if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
             try {
-              await createUserWithEmailAndPassword(auth, email, password);
+              const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+              const user = userCredential.user;
+              
+              // Now create the user profile in Firestore
+              const userDocRef = doc(firestore, "users", user.uid);
+              await setDoc(userDocRef, {
+                id: user.uid,
+                name: 'Safety Officer',
+                email: email,
+                role: 'Safety Officer',
+                avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxwZXJzb24lMjBwb3J0cmFpdHxlbnwwfHx8fDE3NjIxODcyNzB8MA&ixlib=rb-4.1.0&q=80&w=1080'
+              });
+
             } catch (createError) {
-              console.error("Failed to create dev user:", createError);
+              console.error("Failed to create dev user and profile:", createError);
             }
           } else {
             console.error("Failed to sign in dev user:", error);
@@ -58,7 +70,7 @@ export default function LoginPage() {
       };
       devLogin();
     }
-  }, [auth]);
+  }, [auth, firestore]);
 
 
   React.useEffect(() => {

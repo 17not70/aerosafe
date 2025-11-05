@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import type { User } from "@/lib/types"
 import { CreditCard, LogOut, Settings, User as UserIcon } from "lucide-react"
+import Link from "next/link"
 
 interface UserNavProps {
   user: User
@@ -51,9 +52,11 @@ export function UserNav({ user }: UserNavProps) {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem>
-            <UserIcon /> Profile
-          </DropdownMenuItem>
+          <Link href="/dashboard/profile" legacyBehavior passHref>
+             <DropdownMenuItem asChild>
+                <a><UserIcon /> Profile</a>
+             </DropdownMenuItem>
+          </Link>
           <DropdownMenuItem>
             <CreditCard /> Billing
           </DropdownMenuItem>

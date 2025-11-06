@@ -12,46 +12,38 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+      // Check for Admin role in the user's custom claims
+      return request.auth.token.role == 'Admin';
     }
     
     function isSafetyOfficer() {
-        return exists(/databases/$(database)/documents/roles_safety_officer/$(request.auth.uid));
+      // Check for Safety Officer role in the user's custom claims
+      return request.auth.token.role == 'Safety Officer';
     }
 
+    // A user can read their own user document
     match /users/{userId} {
-      allow read: if isSignedIn();
+      allow read: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
       allow create: if isOwner(userId);
       allow update, delete: if isAdmin();
     }
     
     match /reports/{reportId} {
-      allow read: if isSafetyOfficer() || isAdmin();
-      allow list: if isSafetyOfficer() || isAdmin();
-      allow create: if true; // Allow anonymous and signed-in users to create reports
-      allow update: if isSafetyOfficer() || isAdmin();
-      allow delete: if isAdmin();
-    }
-
-    match /users/{userId}/reports/{reportId} {
-      allow read, list, create, update, delete: if isOwner(userId);
+      // Admins and Safety Officers can manage any report
+      allow read, list, update, delete: if isSafetyOfficer() || isAdmin();
+      // Any authenticated user can create a report
+      allow create: if isSignedIn();
+      // Additionally, a user can read a report if they are the reporter
+      allow read: if resource.data.reporter_id == request.auth.uid;
     }
     
     match /corrective_actions/{correctiveActionId} {
-        allow read, list: if isSafetyOfficer() || isAdmin();
-        allow create, update, delete: if isSafetyOfficer() || isAdmin();
+        allow read, list, create, update, delete: if isSafetyOfficer() || isAdmin();
     }
 
     match /audit_logs/{auditLogId} {
       allow read, write: if isAdmin();
-    }
-
-    match /roles_admin/{userId} {
-        allow read, write: if isAdmin();
-    }
-
-    match /roles_safety_officer/{userId} {
-        allow read, write: if isAdmin();
     }
   }
 }

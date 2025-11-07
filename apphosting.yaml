@@ -1,15 +1,25 @@
-
 # Firebase App Hosting configuration for AeroSafe Insights
 # https://firebase.google.com/docs/app-hosting/configure
+# This backend is connected to the main Git branch and the custom domain.
 
 runtime: nodejs20
 entrypoint: npm run start
-
-runConfig:
-  maxInstances: 1
-
 env:
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    secret: firebase-api-key
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    value: "studio-9203015576-3fe67.firebaseapp.com" # Note: Corrected domain format
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: "studio-9203015576-3fe67"
+  - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    value: "studio-9203015576-3fe67.appspot.com" # Note: Corrected storage bucket format
+  - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    value: "731555012217"
+  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+    value: "1:731555012217:web:fafb41849eb639c391fea8"
   - variable: NODE_ENV
     value: "production"
   - variable: NEXT_TELEMETRY_DISABLED
     value: "1"
+runConfig:
+  maxInstances: 2
